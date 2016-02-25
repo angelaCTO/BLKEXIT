@@ -1,0 +1,42 @@
+BTEQ 15.10.01a.00 Mon Feb 15 10:04:55 2016 PID: 29445
+ 
++---------+---------+---------+---------+---------+---------+---------+----
+.LOGON pitg/dbc,
+
+ *** Logon successfully completed.
+ *** Teradata Database Release is 15.10.01.01                   
+ *** Teradata Database Version is 15.10.01.01                     
+ *** Transaction Semantics are BTET.
+ *** Session Character Set Name is 'ASCII'.
+ 
+ *** Total elapsed time was 1 second.
+ 
++---------+---------+---------+---------+---------+---------+---------+----
+.EXPORT REPORT FILE = "disksum_out";
+ *** To reset export, type .EXPORT RESET
++---------+---------+---------+---------+---------+---------+---------+----
+
+WITH SCRIBBLE_DISKSUM AS
+(SELECT DatabaseName, SUM(CurrentPerm) AS "Current_Perm"
+FROM DBC.DiskSpace
+WHERE DatabaseName = 'Scribble_0'
+GROUP BY DatabaseName
+UNION
+SELECT DatabaseName, SUM(CurrentPerm) AS "Current_Perm"
+FROM DBC.DiskSpace
+WHERE DatabaseName = 'Scribble_1'
+GROUP BY DatabaseName)
+SELECT * FROM SCRIBBLE_DISKSUM;
+
+ *** Query completed. One row found. 2 columns returned. 
+ *** Total elapsed time was 1 second.
+
+
++---------+---------+---------+---------+---------+---------+---------+----
+
+.LOGOFF;
+ *** You are now logged off from the DBC.
++---------+---------+---------+---------+---------+---------+---------+----
+.QUIT;
+ *** Exiting BTEQ...
+ *** RC (return code) = 0 

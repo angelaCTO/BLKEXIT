@@ -1,0 +1,8 @@
+(deletion commands)
+ctrl u : erases entire line
+ctrl ? : one backspace
+ctrl c, c : one backspace
+
+(bring up bash)
+source cshrc
+bash

@@ -1,0 +1,23 @@
+.LOGON pitg/dbc, dbc;
+.EXPORT REPORT FILE = "disksum_out";
+
+WITH SCRIBBLE_DISKSUM AS
+(SELECT DatabaseName, SUM(CurrentPerm) AS "Current_Perm"
+FROM DBC.DiskSpace
+WHERE DatabaseName = 'Scribble_0'
+GROUP BY DatabaseName
+UNION
+SELECT DatabaseName, SUM(CurrentPerm) AS "Current_Perm"
+FROM DBC.DiskSpace
+WHERE DatabaseName = 'Scribble_1'
+GROUP BY DatabaseName)
+SELECT * FROM SCRIBBLE_DISKSUM;
+
+.LOGOFF;
+.QUIT;
+
+
+
+
+
+

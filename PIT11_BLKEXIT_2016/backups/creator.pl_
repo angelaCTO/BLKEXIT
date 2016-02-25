@@ -1,0 +1,122 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use threads;
+use threads::shared;
+
+my $sys  = undef;
+my $usr  = undef;
+my $pwd  = undef;
+my $inst = undef;
+my $tbls = undef;
+my $fill = undef;
+my $test = undef;
+
+sub clean {
+    qx(rm outputs/*.txt);
+    #qx(rm scripts/*);
+}
+
+
+#### PARSE THE CONFIGURATION SPECS ########################################
+sub parse_cfg {
+    my $cfg_master = "cfgs/master.cfg";
+    open(CFG, '<', $cfg_master) or die("Couldn't open $cfg_master $!\n");
+    my @cfgs = <CFG>;
+    my $col_counts = $#cfgs;
+    close(CFG);
+
+    foreach my $cfg (@cfgs) {
+         next if $cfg =~ /^#|^$/;
+         my ($spec, $val) = $cfg =~ /(\w+)\s+(\w+)/; 
+         #print "SPEC: $spec, VAL: $val\n";
+       
+         if    ($spec =~ /SYSTEM/i)   { $sys  = $val; }
+         elsif ($spec =~ /USERNAME/i) { $usr  = $val; }
+         elsif ($spec =~ /PASSWORD/i) { $pwd  = $val; }
+         elsif ($spec =~ /INSTANCES/i){ $inst = $val; }         
+         elsif ($spec =~ /TABLES/i)   { $tbls = $val; }
+         elsif ($spec =~ /FILL/i)     { $fill = $val; }
+         elsif ($spec =~ /TEST/i)     { $test = $val; }
+         else                         {             ; }
+    }
+}
+
+
+#### CREATE THE TESTING DBS ###############################################
+sub create_dbs {
+    my $done : shared; $done = 0;
+    my @jobs = ();
+    print "Constructing Scribble($inst):\n";
+    push @jobs, async { 
+        for my $i (0 .. $inst-1) {
+	    qx(perl clear_scribble.pl $sys $usr $pwd $i > outputs/create_scribble.txt);
+        }
+	$done = 1;
+    };
+    push @jobs, async { 
+        print "[";
+	while($done eq 0) { 
+		print "="; 
+		sleep(2);
+	}
+        print "> 100%] Completed.\n\n";
+    };
+    $| = 1; # Autoflush print
+    $_->join for @jobs;
+}
+
+
+#### LOAD THE TEST TABLE / DATA ##########################################
+sub populate {
+    my $done : shared; $done = 0;
+    my @jobs = ();
+
+    print "Generating $tbls tables for Scribble($inst) on $sys for $usr:\n";
+    push @jobs, async {
+        foreach my $i (0 .. $inst-1) {
+                foreach my $tbl (0 .. $tbls-1) {
+                        qx(perl blkexit_generator.pl $sys $usr $pwd $tbl $i > outputs/create_$tbl.txt);
+                } 
+        } 
+        $done = 1;
+    };
+    push @jobs, async { 
+        print "[";
+	while($done eq 0) { 
+		print "="; 
+		sleep(2);
+	}
+        print "> 100%] Completed.\n\n";
+    };
+    $| = 1; # Autoflush print
+    $_->join for @jobs;
+}
+
+
+#### RUN TESTS ############################################################
+
+sub run_test() {
+}
+
+
+
+sub main {
+    print "\n\n****BEGINNING SCRIBBLE ***********************************\n";     
+    print "\nIf you would like to customize the test attributes for \n";
+    print "this test run, please modify cfgs/input_all.cfg. For more \n";
+    print "information regarding customization, please refer to docs.\n\n\n";
+
+    clean();
+    parse_cfg();
+    create_dbs();
+    populate();
+    #run_test();
+
+    print "\n****EXITING SCRIBBLE ***********************************\n\n";     
+    exit(0);
+}
+
+   
+main();

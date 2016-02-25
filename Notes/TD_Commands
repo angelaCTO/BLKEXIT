@@ -1,0 +1,49 @@
+Get source version:
+pit11:~ # ctl
+> scr ver
+> quit
+
+
+BTEQ -- Enter your SQL request or BTEQ command:
+show macro disksum;
+
+show macro disksum;
+
+ *** Text of DDL statement returned.
+ *** Total elapsed time was 1 second.
+
+---------------------------------------------------------------------------
+replace macro disksum as (
+                ECHO '.set width 80';
+                sel databasename, sum(currentperm) (format 'zzz,zzz,zzz,zz
+z,zzz'),
+                sum(maxperm) (format 'zzz,zzz,zzz,zzz,zzz,zzz')
+                from dbc.diskspace
+                order by 1
+                group by 1
+                with sum(currentperm), sum(maxperm) (format 'zzz,zzz,zzz,z
+zz,zzz');
+                );
+
+# Get Size of each table in db
+select
+  databasename, 
+  tablename,
+  sum (currentperm)/1024**3 as current_GB
+from dbc.allspace 
+where tablename <> 'All'
+and databasename = 'yourDB'
+group by 1,2
+order by 1,2
+
+------------------------------------------------------------------------
+# GET DBC SPACE
+.set width 2048
+
+SELECT SUM(CurrentPerm)/(1024**4) AS USEDSPACE_IN_TB,
+       SUM(MaxPerm)/(1024**4) AS MAXSPACE_IN_TB,
+       SUM(CurrentPerm)/NULLIFZERO (SUM(MaxPerm))*100 
+           (FORMAT 'zz9.9999%') AS Percentage_Used,
+       MAXSPACE_IN_TB - USEDSPACE_IN_TB AS REMAININGSPACE_IN_TB
+FROM DBC.DiskSpace 
+WHERE DatabaseName = 'DBC';

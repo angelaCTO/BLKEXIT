@@ -1,0 +1,424 @@
+1) To find AMP usage and CPU utilization on TD server.
+
+  You could query DBC.Tablesize, DBC.ProfileInfo, DBC.AllRoleRights, and  
+  DBC.RoleInfo and others. The query should return on the AMP Usage and CPU  
+  Utilization The following query is dbc.ampusage                
+
+  Select Account Name, UserName, sum(diskio),sum(cputime) from dbc.ampusage 
+  Group by 1,2;
+
+2) To find the information at the user & account level. Space Usage. (Total Disk Space 
+  On DBC)
+
+   The following query is dbc.disksspace
+    Select sum (currentperm) c1, sum (maxperm) c2, c2-c1 from dbc.diskspace;
+   (Or)
+   Select sum(maxperm) from DBC.DiskSpace;      (Total disk space in the entire System (DBC))
+   SELECT SUM (MaxPerm) FROM DBC.DiskSpaceV;
+   (Or)
+   Select sum(MaxPerm) from DBC.DiskSpace where DatabaseName = 'DBC';
+
+3) To find table size in particular DB on TD
+
+   Select database name, table name, SUM (current perm) FROM DBC.Tablesize  
+   WHERE database name = <DATABASE name> GROUP BY 1,2;
+
+4) To find DB size on TD
+
+   Select database name, SUM (maxperm), SUM (current perm) FROM dbc.diskspace
+   WHERE database name =<DATABASE name> GROUP BY 1;
+
+5) To get all the same spaces for one or more Databases or Users on TD
+  Select DATABASENAME, SUM (MAXPERM), SUM (CURRENTPERM),
+  SUM (MAXPERM)-SUM (CURRENTPERM) ,SUM(MAXSPOOL) FROM DBC.DISKSPACE   
+   GROUP BY 1 ORDER BY 2;
+
+6)  To find Occupied and Empty Permanent Space and Assigned Spool Space. If you
+   Filter using WHERE Database name = 'xxxx'
+
+   Select DATABASENAME, SUM (MAXPERM),SUM(CURRENTPERM),SUM(MAXPERM)-
+   SUM (CURRENTPERM), SUM (MAXSPOOL FROM DBC.DISKSPACE GROUP BY 1  
+   ORDER BY 2;
+
+   (Or)  
+  
+   Select * from dbc.databases where database name='Your database name';
+
+7)  To find total disk space in GB on TD server
+
+    Select sum(maxperm)/ 1024/ 1024/ 1024 "MaxPerm in GB", sum(currentperm)/   
+    1024/ 1024/ 1024 "CurrrentPerm in GB", sum(maxspool)/1024/1024/1024  
+    "maxspool in GB", (sum(maxperm)/ 1024/ 1024/ 1024) - (sum(currentperm)/  
+    1024/ 1024/ 1024 ) " SpaceLeft in GB",(sum(currentperm) / (sum(maxperm))  
+    *100) "% Used" from dbc.diskspace;
+
+    Select sum(maxperm)/ 1024/ 1024 "MaxPerm in MB", sum(currentperm)/ 1024/   
+    1024 "CurrrentPerm in MB", sum(maxspool)/1024/1024 "maxspool in MB",
+    (sum(maxperm)/ 1024/ 1024) - (sum(currentperm)/ 1024/ 1024 ) "  
+    SpaceLeft in MB",(sum(currentperm) / (sum(maxperm)) *100) "% Used" from 
+    dbc.diskspace;
+
+8) To find Percent of disk space free on TD server
+
+ SELECT (((SUM (MAXPERM) - (SUM(CURRENTPERM)) - SUM(CURRENTSPOOL)) / 
+ NULLIFZERO (SUM (MAXPERM))) * 100) (TITLE'% FREE', FORMAT'ZZ9.99') FROM 
+ DBC.DISKSPACE;
+
+ SELECT DatabaseName CAST (SUM (MaxPerm) AS FORMAT 'zzz,zzz,zz9')
+ ,CAST (SUM (CurrentPerm) AS FORMAT 'zzz,zzz,zz9'),CAST (((SUM (CurrentPerm))/
+ NULLIFZERO (SUM(MaxPerm)) * 100) AS FORMAT 'zz9.99%') AS "% Used"
+ FROM  DBC.DiskSpace GROUP BY  1 ORDER BY  4 DESC ;
+
+9) To find Percent of disk available for spool on TD server
+
+ SELECT (((SUM (MAXPERM) - SUM (CURRENTPERM)) / NULLIFZERO (SUM   
+ (MAXPERM))) * 100) (TITLE'% AVAIL FOR SPOOL', FORMAT'ZZ9.99') FROM   
+ DBC.DiskSpaceV;
+
+10) To find Disk space for a given database on TD server
+ SELECT SUM (MAXPERM) FROM DBC.DiskSpaceV WHERE DATABASENAME='XXXX';
+
+
+11) To find Disk space for a given table on TD server
+SELECT SUM (CURRENTPERM) FROM DBC.TablesizeV WHERE DATABASENAME='XXX'  AND TABLENAME = 'XXXX';
+
+12) To check database space you could run the following query
+ Select database name, sum (current perm), sum (maxperm) from dbc.diskspace group  By 1;
+
+13)  To find out which child database have a free perm 
+
+ Select database name, sum (current perm), sum (maxperm), sum (maxperm) - 
+  Sum (current perm) from dbc.diskspace Group by 1;
+
+14) To find MaxPerm, Current perm and Peak perm on dbc disks pace
+
+  Select sum (current Perm), sum (peak Perm), sum (MaxPerm) from dbc.DiskSpace;
+
+15) Disk Space currently in use on TD Server
+
+    SELECT SUM (CurrentPerm), SUM (MaxPerm),((SUM(currentperm) / 
+    NULLIFZERO (SUM (maxperm)) * 100))(TITLE '%MaxPerm', FORMAT 'zz9.99')
+    FROM DBC.DiskSpaceV;
+
+16) Percent of space used by each database in the system on TD Server
+
+SELECT Databasename (format ‘X (12)'), SUM (maxperm), SUM(currentperm),
+((SUM (currentperm))/NULLIFZERO (SUM (maxperm)) * 100)(FORMAT 'zz9.99%',TITLE 'Percent // Used') FROM DBC.DiskSpaceV GROUP BY 1 ORDER BY 4 DESC WITH SUM (currentperm), SUM (maxperm);
+
+17) Users who are running out of PERM space
+
+SELECT Databasename (format 'X(12)'),SUM(maxperm),SUM(currentperm),
+   ((SUM (currentperm))/NULLIFZERO (SUM (maxperm)) * 100)(format 'zz9.99%',
+   TITLE 'Percent // Used') FROM DBC.DiskSpaceV GROUP BY 1 HAVING    
+   (SUM (currentPerm) / NULLIFZERO (SUM (maxperm))) > 0.9 ORDER BY 4 DESC;
+
+18) Users using lot of spool on TD Server
+
+SELECT databasename,SUM(peakspool) FROM DBC.DiskSpaceV
+   GROUP BY 1 HAVING SUM (peakspool) > 5000000000 ORDER BY 2 DESC;
+
+   You can change the value 500000000 to whatever value is appropriate for your site.
+   Some sites with more space may have higher tolerance for higher spool usage and   
+   Spool limits.
+
+19) To Shows macro space used
+
+CREATE MACRO superspace as (SELECT databasename (char (30)), SUM(maxperm), SUM (currentperm) FROM DBC.DiskSpaceV GROUP BY databasename ORDER BY   Databasename WITH SUM (maxperm), sum (currentperm););
+
+20) To shows TableSizeV View
+
+   The DBC.TableSizeV view provides AMP information about disk space usage at the    table level.Optionally use viewnameVX for information on only those tables that the  
+   requesting user owns or has SELECT privileges on.
+
+   SELECT tablename (TITLE 'Table'),currentperm (TITLE 'CurPerm'),vproc (TITLE 'Amp') FROM DBC.tablesizeV WHERE databasename='xxx' AND tablename = 'xxxx' ORDER BY 2 DESC; 
+
+
+21) To finding Skewed Tables on TD Server
+
+    SELECT vproc AS AMP, TableName (FORMAT ‘X (20)'), CurrentPerm FROM  
+    DBC.TableSizeV WHERE DatabaseName = 'USER' ORDER BY Table Name, AMP ;
+
+22) Warning about AllSpaceV View
+
+   SELECT DatabaseName,Sum(CurrentPerm) FROM DBC.AllSpaceV GROUP BY 1    
+   Having sum (currentperm) > 0 ORDER BY 2 desc;
+
+   SELECT DatabaseName,Sum(CurrentPerm) FROM DBC.AllSpaceV where 
+   databasename='DBC' GROUP BY 1 having sum(currentperm) > 0 ORDER BY 2 desc;
+
+   SELECT DatabaseName,Sum(CurrentPerm) FROM DBC.DiskSpaceV GROUP BY 1 
+   Having sum (currentperm) > 0 ORDER BY 2 desc;
+
+23) To find TableSizeV to report the PERM of tables in a particular database and
+   DiskSpaceV to report the PERM of the database
+
+   TableSizeV reports MAX (CurrentPerm) and SUM (CurrentPerm) on all tables in the
+   Specified database
+
+   SELECT MAX (CurrentPerm), SUM(CurrentPerm) FROM DBC.TableSizeV
+   WHERE DatabaseName = ‘xxxx’;
+  
+   DiskSpaceV reports MAX (CurrentPerm) and SUM (CurrentPerm) at the database level:
+
+   SELECT MAX (CurrentPerm), SUM(CurrentPerm) FROM DBC.DiskSpaceV
+   WHERE DatabaseName = ‘xxxxx’ ;
+
+24) DBC.LogOnOffV View
+
+ The following query returns any failed logon attempts during the last seven days
+
+ SELECT LogDate,LogTime,UserName (FORMAT 'X(10)'),Event FROM DBC.LogOnOffV
+ WHERE Event NOT LIKE ('%Logo%') AND LogDate GT DATE – 7 ORDER BY LogDate, 
+ LogTime;
+
+25) To find the Max PermSpace on TD Server by using DataBase id
+
+ Select sum (maxpermspace),from DBC.DataBaseSpace where Databaseid='00007408'XB;
+
+  ( '00007408'XB is Database id for the database)
+
+26)
+    Select sum ( currentperm) from DBC.TableSize where databasename='xxx' ;
+
+    Select max (currentperm) from DBC.TableSize group by vproc where
+    databasename='xxx' ;
+
+    (In above query Max Of current permspace of each amp is less than the  
+     Maxpermspace/80(80 is number of amps)
+
+    Amp is full only when it reaches =26528972=2122317760.00(Max Perm Space)/80
+
+    Amp number which is occupied highest space is 50 I.e. 10132992.00 Bytes
+
+27) To find Max PermSpace and Current PermSpace on TD Server  
+
+   Select max (currentperm), max (maxperm) from dbc.diskspace where  
+   databasename='xxx';
+
+28) To find Current PermSpace,Effective Space of TableSize and DataBaseName on TD 
+    Server by using HASHMAP
+
+   SELECT SUM (CURRENTPERM) ACTUALSPACE, MAX (CURRENTPERM)*(HASHAMP()+1) 
+   EFFECTIVESPACE FROM DBC.TABLESIZE WHERE DATABASENAME = 'mydb' AND  
+   TABLENAME ='mytable';
+
+   SELECT SUM(CURRENTPERM)/(1024*1024) ACTUALSPACE, 
+   (MAX(CURRENTPERM)*(HASHAMP()+1))/(1024*1024) EFFECTIVESPACE
+   FROM DBC.TABLESIZE WHERE DATABASENAME = 'DB_NAME' AND TABLENAME =   
+   'TABLE_NAME';
+
+29)  To use the below query and you can modify according to your needs
+
+    Select databasename,cast(sum(maxperm)/1024/1024/1024 as decimal(7,2)) 
+    max_perm,cast(sum(currentperm)/1024/1024/1024 as decimal(7,2))
+    current_perm,cast(sum(maxspool)/1024/1024/1024 as decimal(7,2))
+    max_spool,cast(sum(currentspool)/1024/1024/1024 as decimal(7,2)) current_spool   
+    from dbc.diskspace where databasename in (select databasename from   
+    dbc.databases where dbkind = 'D' and databasename in ('STG_DEV', 'STG_TST_TMP',  
+    'WRK_STG_DEV') ) group by databasename order by max_perm desc;
+
+29) Find MAX(CurrentPerm) and SUM(CurrentPerm) in DBC
+
+    select max(CurrentPerm),sum(CurrentPerm) from DBC.DiskSpace
+
+30) DBC.DiskSpace
+
+It provides information about disk space usage (including spool) for any database or   
+Account.
+
+SELECT DatabaseName CAST (SUM (MaxPerm) AS FORMAT 'zzz, zzz, zz9’)
+, CAST (SUM (CurrentPerm) AS FORMAT 'zzz, zzz,zz9’),CAST (((SUM (CurrentPerm))/
+NULLIFZERO (SUM (MaxPerm)) * 100) AS FORMAT ’zz9.99 %') AS "% Used"
+FROM   DBC.DiskSpace GROUP BY   1 ORDER BY   4 DESC;
+
+31)  DBC.TableSize
+
+  It provides information about disk space usage (excluding spool) for any database, table or account.
+   SELECT  Vproc ,CAST (TableName AS FORMAT 'X(20)') ,CurrentPerm,PeakPerm
+   FROM   DBC.TableSize WHERE DatabaseName = USER ORDER BY  TableName, Vproc ;
+
+32) DBC.AllSpace
+
+  It provides information about disk space usage (including spool) for any database,    
+  table,or account.
+    SELECT  Vproc,CAST (TableName AS  FORMAT 'X(20)') ,MaxPerm,CurrentPerm
+    FROM   DBC.AllSpace WHERE DatabaseName = USER   
+    ORDER BY   TableName, Vproc ;
+
+33) You can play with SQL to SUM up the database to get total count of database or you  
+   Can simply use the
+     view diskspace;   (to get the totals across the whole database)
+
+34) Data Skew Check
+
+1) First check to see if the primary index is ok for tables system-wide:
+
+SEL (MAX(CurrentPerm) - MIN(CurrentPerm)) * 100/(NULLIF(MIN(currentperm),0))
+(NAMED variance)(FORMAT 'zzzzz9.99%'),MAX(CurrentPerm)(TITLE 'Max')
+(FORMAT 'zzz,zzz,zzz,999'),MIN(currentperm)(TITLE 'Min')(FORMAT 'zzz,zzz,zzz,999'),TRIM(DatabaseName)||'.'||TableName (NAMED Tables)
+FROM DBC.tablesizeGROUP BY DatabaseName, TableNameHAVING SUM(CurrentPerm) > 1000000 AND variance > 1000 WHERE DatabaseName NOT IN ('CrashDumps','DBC')
+ORDER BY Tables;
+
+2) If this is not the case, try to identify the job that might be responsible for the concentration of IO and cpu by checking spool usage by vproc:
+
+//* DBC.DISKSPACE - Get AMP Number with skew for data & Peak Spool - Include % distribution efficiency */
+.export file diskskew.out
+.set defaults
+.set separator 1
+.set width 110
+
+SELECT A.databasename (Format 'x(20)') (Title 'DiskSpace//DB Name')
+, A.accountName (Format 'x(20)') (Title 'Acct Name'), A.vproc (Format 'zzzz9') (Title 'AMP //Number'), A.currentperm / (1024**2) (Format 'zz,zz9.999') (Title '//CurrPerm')
+, DT.avgCurperm / (1024**2) (Format 'zz,zz9.999') (Title 'Avg//CurrPerm')
+, A.currentperm / DT.avgCurperm (Format 'zzz9.99') (Title 'CurrPerm//Skew')
+, A.peakspool / (1024**2) (Format 'zz,zz9.999') (Title '//PeakSpool'), DT.avgPeakspool / (1024**2) (Format 'zz,zz9.999') (Title 'Avg//PeakSpool'), A.peakspool / DT.avgPeakspool (Format 'zzz9.99') (Title 'PeakSpool//Skew')FROM DBC.Diskspace A,(SELECT databasename (Format 'x(12)') (Title 'DiskSpace//DB Name') , accountName (Format 'x(12)') (Title 'Acct Name'), AVG(currentperm) (Format 'z,zzz,zz9') (Title 'CurrPerm//MBytes')
+, AVG(peakspool) (Format 'z,zzz,zz9') (Title 'PeakSpool//MBytes') FROM DBC.Diskspace
+GROUP BY 1, 2 ) DT (databasename, accountName, avgCurperm, avgPeakspool)WHERE A.databasename = DT.databasename AND A.accountName = DT.accountName
+AND (A.currentperm / DT.avgCurperm >= 1.30 OR A.peakspool / DT.avgPeakspool >= 1.30)
+ORDER BY 3, 1, 2;
+.set defaults
+
+
+/* DBC.AMPUSAGE - Get CPU Usage & Logical Disk I/Os by Users with more than 100,000 cpu seconds */
+
+.export file ampusage.out
+.set defaults
+.set width 110
+SELECT A.accountName (Format 'x(18)') (Title 'AMPUsage//Acct Name'), A.username (Format 'x(22)') (Title 'User Name'), SUM(A.CPUTime) (Format 'zzz,zzz,zz9') (Title 'CPUtime'), SUM(A.DiskIO) (Format 'zzz,zzz,zzz,zz9') (Title 'DiskIO'), AVG(A.CPUTime) (Format 'zzz,zzz,zz9') (Title 'AvgCPUtime'), MAX(A.CPUTime) (Format 'zzz,zzz,zz9') (Title 'MAXCPUtime')
+, MAX(A.CPUTime)/nullifzero(AVG(A.CPUTime) )(Format 'zz9.99') (Title 'CPU//Skew//Effect')
+FROM DBC.AMPUsage A GROUP BY 1, 2 HAVING SUM(CPUTime) > 1e5 ORDER BY 3 desc, 1, 2;
+
+.set defaults
+.set width 80
+
+/* DBC.AMPUSAGE - Get CPU Usage & Logical Disk I/Os by User  with skewing greater than 30% over average*/
+
+.export file ampusageskew.out
+.set defaults
+.set width 94
+SELECT A.accountName (Format 'x(18)') (Title 'AMPusage//Acct Name'), A.username (Format 'x(12)') (Title 'User Name'), A.vproc (Format '99999') (Title 'Vproc'), A.CPUTime (Format 'zz,zzz,zz9') (Title 'CPUtime'), DT.AvgCPUTime (Format 'zz,zzz,zz9') (Title 'AvgCPUtime'), A.CPUTime/NULLIFZERO(DT.AvgCPUTime)(Format 'zz9.99')(Title 'Ratio//to Avg')(Named CpuRatio), A.DiskIO (Format 'zzz,zzz,zzz,zz9') (Title 'AvgDiskIO'), A.DiskIO/NULLIFZERO(DT.avgDiskIO) (Format 'z9.99') (Title 'Ratio//to Avg')FROM DBC.AMPUsage A,(SELECT accountName, username, AVG(CPUTime), SUM(CPUTime)
+, AVG(DiskIO), SUM(DiskIO) FROM DBC.AMPUsageGROUP BY 1, 2HAVING SUM(CPUTime) > 1e4) DT (accountName, username, avgCPUtime, sumCPUtime, avgDiskIO, sumDiskIO)
+WHERE A.accountname = DT.accountName AND A.username = DT.username
+AND CpuRatio > 1.30 ORDER BY 5, 1, 2, 3;
+
+3) Once you have identified the application, check the tables involved to see if secondary indexes are skewed or if the access to the tables is causing a concentration on the clique...
+
+/* The following query will provide the distribution by amp for a given index or column. */
+
+select  hashamp (hashbucket(hashrow(index or column))),count(*) from database.table
+group by 1 order by 2 desc;
+
+/* The following query will provide the number of collisions  for row hash. */
+
+select hashrow(index or column), count(*) from database.table group by 1 order by 1 having count(*) > 10;
+
+35) To find out I/O and CPU Usage from this data Dictionary Table DBC.AMPUSAGE
+  
+   SELECT ACCOUNTNAME, USERNAME,SUM(CPUTIME) AS CPU,SUM (DISKIO)
+   AS DISKIO FROM DBC.AMPUSAGE GROUP BY 1,2 ORDER BY 3 DESC;
+
+36) Find the total space in your system
+
+    Select sum (maxperm) from dbc.diskspace;
+
+37) How to find CYLINDERS
+   Go to - >Teradata Manager ->Select MENU -> Investigate then “Space Usage”, then  
+   “Cylinders by vproc “. it tells you the number of available cylinders. Now, divide the   
+   Total space by the number of cylinders to get the size of a cylinder.
+
+38)  SELECT databasename ,SUM ((((MaxPerm) / 1024) /1024) / 1024) AS   
+     Maximum_Space_GB ,SUM ((((CurrentPerm) / 1024) /1024) / 1024) AS  
+     Current_Space_Used_GB,((100-Percent_Used)*Maximum_Space_GB)/100 AS  
+     Free_Space_GB,(Current_Space_Used_GB / NULLIFZERO (Maximum_Space_GB) *  
+     100 ) (FORMAT 'zz9.99%' , TITLE 'Percent // Used') AS Percent_Used,
+     (Free_Space_GB / NULLIFZERO (Maximum_Space_GB)) FROM        DBC.DISKSPACE  
+     Group By 1 ORDER       BY 5 DESC;
+
+Here is SQL to show you a user's max spool (amount allocated) and peak spool (highest amount used):
+SELECT DATABASENAME (Title 'User'),sum(MaxSpool) (format '---,---,---,---,--9')(char(19))(title 'max Spool'),sum(PeakSpool) (format '---,---,---,---,--9')(char(19))(title 'Peak Spool'),sum(Maxtemp) (format '---,---,---,---,--9')(char(19))(title 'max temp'),sum(PeakTemp) (format '---,---,---,---,--9')(char(19))(title 'Peak Temp') FROM DBC.DISKSPACE
+WHERE DatabaseName = 'DBNAME' ORDER BY 1 GROUP BY 1;
+
+Here is SQL to give you information including spool and temporary space allocations for a user:
+
+SELECT A.DatabaseName (CHAR(20)), A.OwnerName (CHAR(20)), A.AccountName (CHAR(20)), B.DefaultDatabase (CHAR(20)), (A.SpoolSpace / 1000000000) (NAMED Spool_In_gig), (A.TempSpace / 1000000000) (NAMED Temp_In_gig)
+FROM DBC.DATABASES  A, DBC.DBASE  B WHERE A.DatabaseName = B.DatabaseNamei
+AND A.DatabaseName = 'Joe_User' ORDER BY 1;
+
+39) Deleting DBQL tables should not cause any problem.
+
+Two steps for a cleanup job could be:
+
+(1)  Insert selects the rows to a private database if you want to keep some history. Consider using (empty) staging tables for optimized insert-select.
+
+
+(2)  Delete DBC.DBQL* tables (except for the RuleTbl and RuleCountTbl which anyways you can't). If you are deleting based on date then use collectiontimestamp on all but DBQLogTbl. We use Start Time to delete from DBQLogTbl as the collectiontimestamp is way off in this table (may be a bug)
+
+
+43) DBC.DiskSpace (Useful)
+It provides information about disk space usage (including spool) for any database or account.
+
+SELECT  DatabaseName,CAST (SUM (MaxPerm) AS FORMAT 'zzz,zzz,zz9'),CAST (SUM (CurrentPerm) AS FORMAT 'zzz,zzz,zz9'),CAST (((SUM (CurrentPerm))/ NULLIFZERO (SUM(MaxPerm)) * 100) AS FORMAT 'zz9.99%') AS "% Used FROM   DBC.DiskSpace GROUP BY   1
+ORDER BY   4 DESC;
+
+44)  DBC.TableSize
+It provides information about disk space usage (excluding spool) for any database, table or account
+ SELECT   Vproc,CAST (TableName  AS FORMAT 'X(20)') ,CurrentPerm,PeakPerm FROM   DBC.TableSize WHERE DatabaseName = USER ORDER BY  TableName, Vproc ;
+
+45) DBC.AllSpace
+It provides information about disk space usage (including spool) for any database, table, or account.
+ SELECT  Vproc,CAST (TableName AS  FORMAT 'X(20)') ,MaxPerm,CurrentPerm FROM   DBC.AllSpace WHERE DatabaseName = USER ORDER BY   TableName, Vproc 
+
+
+
+
+
+
+SELECT DATABASENAME, TABLENAME, SUM(CURRENTPERM)
+FROM DBC.TABLESIZE
+WHERE DATABASENAME = 'Scribble_0'
+AND TABLENAME = 'TestTable_0'
+GROUP BY DATABASENAME , TABLENAME;
+
+SELECT databasename, tablename,
+SUM (currentperm)/1024**4 AS CURRENT_TB
+FROM dbc.allspace 
+WHERE tablename <> 'All'
+AND databasename = 'Scribble_0'
+GROUP BY 1,2
+ORDER BY 1,2
+
+
+SELECT
+DatabaseName
+,SUM(CurrentPerm)/1024/1024 AS USEDSPACE_IN_MB
+,SUM(MaxPerm)/1024/1024 AS MAXSPACE_IN_MB
+,SUM(CurrentPerm)/ NULLIFZERO (SUM(MaxPerm)) *100 (FORMAT 'zz9.99%') AS Percentage_Used 
+,MAXSPACE_IN_MB- USEDSPACE_IN_MB AS REMAININGSPACE_IN_MB
+FROM DBC.DiskSpace
+WHERE DatabaseName = Scribble_0
+GROUP BY DatabaseName;
+
+
+select
+  databasename, 
+  tablename,
+  sum (currentperm)/1024**3 as current_GB
+from dbc.allspace 
+where tablename <> 'All'
+and databasename = 'Scribble_1'
+group by 1,2
+order by 1,2;
+
+select * from Scribble_1.Testtable_2;
+
+select count(*) from scribble_0.testtable_0;
+
+SELECT
+DatabaseName
+,SUM(CurrentPerm)/1024**4 AS USEDSPACE_IN_TB
+,SUM(MaxPerm)/1024**4 AS MAXSPACE_IN_TB
+,SUM(CurrentPerm)/ NULLIFZERO (SUM(MaxPerm))*100 (FORMAT 'zz9.9999%') AS Percentage_Used 
+,MAXSPACE_IN_TB - USEDSPACE_IN_TB AS REMAININGSPACE_IN_TB
+FROM DBC.DiskSpace
+WHERE DatabaseName = 'DBC'
+GROUP BY DatabaseName;

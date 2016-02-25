@@ -1,0 +1,47 @@
+0. TRANSFER 
+------------------------------------------------------------------------
+zip -r scribble.zip PIT11_BLKEXIT_2016
+
+Transfer zipped PIT11.. to esssol102 (to be scped to ec2)
+
+1. LOGON ESSSOL102 Notes
+------------------------------------------------------------------------
+Logon via rh122058@esssol102
+Hostname: esssol102
+Username: rh122058
+Password: <ommitted>
+
+Log into instance (via directory containing pem key file):
+ssh -i jxrwest.pem ec2-user@52.32.252.169
+
+If that doesn't work do this, then try again
+chmod 700 jxrwest.pem
+
+
+To copy from esssol102 to ec2:
+scp -i jxrwest.pem -r scribble.zip ec2-user@52.32.252.169:.
+
+Unzip exec dir
+unzip scribble.zip
+
+Observations:
+-------------
+running exe produced the following error
+" CLI ERROR: EM_HOST(224): Name not in host file or names database
+  Return Code: 224
+  Error: Logon Failed
+"
+
+Resolve:
+-------------
+change host name in master configurations file to dbccop1
+
+
+2. COP Notes
+------------------------------------------------------------------------
+-BTEQ, TD expects TD Server hostnames composed of tdpid, 
+each concat with cop1, cop2, cop*
+- Need to apend "cop" alias to DNS DB for TD node on network
+- "dbcop1" is a work all
+- must be defined in /etc/hosts containt aliases
+- "cop" = "CO-Processor"

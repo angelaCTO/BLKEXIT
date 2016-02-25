@@ -1,0 +1,162 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+###############################################################################
+## UPDATE/ALTER TEST                                                         ##                                                                          ##
+## LOOP:                                                                     ##
+##     1. Random data swaps from inst/table/columns with same type defs      ##
+##     2.                                                                    ##                                                                        
+###############################################################################
+
+if($#ARGV != 4) {
+	print "USAGE: [SYSTEM] [USER] [PASSWORD] [INSTANCES] [TABLES]\n";
+	exit(1);
+}
+my $sys   = $ARGV[0];
+my $usr   = $ARGV[1];
+my $pwd   = $ARGV[2];
+my $insts = $ARGV[3];
+my $tbls  = $ARGV[4];
+
+my %attrs;
+
+##===========================================================================##
+## print_attr()                                                              ##
+##                                                                           ##
+## Method Object: [DEBUG]                                                    ##
+## Description:   Prints out the column IDs asscociated with each attribte   ##
+##                type                                                       ## 
+##===========================================================================##
+sub print_attr {
+	foreach my $group (keys %attrs) {
+    	print "The members of $group are\n";
+    	foreach (@{$attrs{$group}}) {
+        	print "$_, ";
+    	}
+		print "\n";
+	}
+}
+
+
+##===========================================================================##
+## order_cols()                                                              ##
+##                                                                           ##
+## Method Object: [HELPER]                                                   ##
+## Description: Reads in input CFG listing from file and orders column IDs   ##
+##              by attibute types, groups columns with same data types into  ##
+##              associative hash (key: data type, value: col ID)             ##
+##===========================================================================##
+sub order_cols {
+	my $input_path = "../../cfgs/input_all.cfg";
+	open(IN, '<', $input_path) or die ("Couldn't open $input_path $!\n");
+	my @lines = <IN>;
+	close(IN);
+	
+	foreach my $i (0 .. $#lines) {
+		my $type = $lines[$i]; chomp($type);
+		if (exists $attrs{$type}) {
+			push(@{$attrs{$type}}, $i);
+		} 
+		else { 
+			$attrs{$type} = [$i];
+		}	
+	}
+}
+
+
+##===========================================================================##
+## select_swaps()                                                            ##
+##                                                                           ##
+## Method Object: [HELPER]                                                   ##
+## Description: Selects a random attribute key and two random columns w/     ##
+##              data type definition to be used for random swap test         ##
+## Params: None                                                              ##
+## Return: List : (col_type, col_ID0, col_ID1)                               ##                                                               
+##===========================================================================##
+sub select_swaps {
+	my @attr_keys = keys(%attrs);
+	my $rand_key  = $attr_keys[rand @attr_keys];
+	my $num_vals  = $#{$attrs{$rand_key}} + 1;   #NOTE: rand is non-inclusive
+	
+	my $swp0 = int(rand($num_vals)); 
+	my $swp1 = int(rand($num_vals)); 
+
+	#- Select random col IDs for the data swap, if the same col IDs have been 
+    #- selected twice, reselect the second col ID
+	my $rand_val0  = $attrs{$rand_key}[$swp0]; 
+	my $rand_val1  = $attrs{$rand_key}[$swp1];
+	while ($rand_val0 eq $rand_val1) { 
+		$rand_val1 = $attrs{$rand_key}[$swp1]; 
+	}
+	
+=pod DEBUG print out, will leave for posterity		 
+    print "HASH_KEYS: @attr_keys\n";
+	print "RAND_KEY:  $rand_key\n";
+	print "NUM VALS:  $num_vals\n";
+	print "SWP0:      $swp0\n";
+	print "SWP0:      $swp1\n";
+	print "RAND_VAL0: $rand_val0\n";
+    print "RAND_VAL1: $rand_val1\n";
+=cut
+
+	#- RETURN: (ATTR, COL_ID0, COL_ID1)
+	return($rand_key, $rand_val0, $rand_val1);
+}
+
+
+##===========================================================================##
+## swap_cols()                                                               ##
+##                                                                           ##
+## Method Object: [TEST]                                                     ##
+## Description: Randomly selects two columns with same type definition and   ##
+##              swaps the data between columns                               ##    
+##===========================================================================##
+sub swap_cols {
+	my $inst = shift(@_);
+	my $tbl  = shift(@_);
+
+	my @selected = select_swaps();
+	my $sel_attr = $selected[0];
+	my $sel_col0 = $selected[0];
+	my $sel_col1 = $selected[1]; 
+
+	qx(perl gen_swaps.pl $sys $usr $pwd $inst $tbl $sel_col0 $sel_col1);
+}
+
+
+sub main {
+	my $t_start   = localtime();
+	my $t_currt   = undef;
+	my $swap_inst = undef;
+	my $swap_tbl  = undef;
+	my $swaps     = 0;
+	my $time_out  = 0;
+
+	print "\nBEGINNING SWAP TEST\n";
+	print "\tSTART_TIME: $t_start\n";
+
+	while(time_out) {
+			# Check for exit
+			$t_currt = localtime();
+			if (($t_currt - $t_start) > $time) { 
+				$time_out = 1; last;
+			}
+			print "\tCURRENT TIME: $t_currt\n";
+
+			# Select a random Instance, random Table
+			$swap_inst = int(rand($insts + 1));
+			$swap_tbl  = int(rand($tbls + 1));
+			swap_cols($swap_inst, $swap_tbl);
+			$swaps += 1;
+	}
+		
+	print "START_TIME:           $t_start\n";
+	print "END_TIME:             $t_currt\n";
+	print "NO. SWAPS OPERATIONS: $swaps\n";
+
+	print "\nSWAP TEST COMPLETED\n";
+	
+}
+main();

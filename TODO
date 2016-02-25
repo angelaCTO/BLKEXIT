@@ -1,0 +1,6 @@
+0. Fix indentation, easier to debug
+1. Modify space calculation: Fill % accounts for all of DBS, and NOT ONLY 
+   limited to each scribble isntance
+2. Recursively clean up subdirectories with out removing the directories 
+   themselves
+3. Rename get_space.pl to get_inst_space.pl to avoid confusion (later)

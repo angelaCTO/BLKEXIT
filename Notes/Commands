@@ -1,0 +1,5 @@
+# Recursively delete files w/o deleting subdir (w/ some ext)
+find . ! -name '.*' ! -type d -exec rm -- {} +
+
+find . -type d -exec rm -- {} +
+
