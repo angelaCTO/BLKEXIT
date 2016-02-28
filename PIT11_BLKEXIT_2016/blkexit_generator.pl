@@ -7,28 +7,37 @@ use strict;
 ## BLKEXIT_GENERATOR.PL                                                      ##
 ##                                                                           ##
 ## Generates fastload scripts for custom test schemes                        ##
-## Params         														     ##
+## Params: SYSTEM   : System name                                            ##
+##         USER     : System user name                                       ## 
+##         PASSWORD : System password                                        ##
+##         SESSION  : Max session (per system PE)                            ##
+##         GROUP    : Group ID                                               ##
+##         INSTANCE : Instance ID                                            ##
+##         TABLE    : Table ID                                               ##
+##         EXEC     : SCRIBMOD executable name                               ##
 ## Return:                                                                   ##
-## Useage: ./blkexit_generator.pl SYS USR PWD SESS TBL_ID INST_ID EXEC       ##   
+## Useage: ./blkexit_generator.pl SYS USR PWD SESS TBL_ID INST_ID EXEC       ## 
 ###############################################################################
 
 ### CHECK INPUTS 
-if($#ARGV != 6) {
-	print "USAGE: [SYSTEM] [USER] [PASSWORD] [SESSION] [TABLES] [INSTANCE] [EXEC]\n";
+if($#ARGV != 7) {
+	print "USAGE: [SYSTEM] [USER] [PASSWORD] [SESSION]\n"
+        print "       [GROUP] [INSTANCE] [TABLE] [EXEC]\n";
 	exit 1;
 }
-my $sys  = $ARGV[0];
-my $usr  = $ARGV[1];
-my $pwd  = $ARGV[2];
-my $sess = $ARGV[3];
-my $i    = $ARGV[4]; #TODO Change $i -> $tbl
-my $inst = $ARGV[5];
-my $exec = $ARGV[6];
+my $sys   = $ARGV[0];
+my $usr   = $ARGV[1];
+my $pwd   = $ARGV[2];
+my $sess  = $ARGV[3];
+my $grp   = $ARGV[4];
+my $inst  = $ARGV[5];
+my $tbl   = $ARGV[6];
+my $exec  = $ARGV[7];
 
 
 my $cfg_input = "cfgs/input_all.cfg";
-my $exec_fld  = "scripts/fastload/Scribble_${inst}-TestTable_${i}";
-my $exec_out  = "outputs/fastload/load_${i}.txt";
+my $exec_fld  = "scripts/fastload/load_Scribble_${grp}${inst}-TestTable_${tbl}.bteq";
+my $exec_out  = "outputs/fastload/load_Scribble_${grp}${inst}-TestTable_${tbl}.out";
 
 
 ### READ IN USER CFG FROM FILE
@@ -51,9 +60,9 @@ print EXEC "\n";
 
 
 ### DROP EXISTING TABLES
-print EXEC "DROP TABLE Scribble_${inst}.Error_${i}_1;\n";
-print EXEC "DROP TABLE Scribble_${inst}.Error_${i}_2;\n";
-print EXEC "DROP TABLE Scribble_${inst}.TestTable_${i};\n";
+print EXEC "DROP TABLE Scribble_${grp}${inst}.Error_${tbl}_1;\n";
+print EXEC "DROP TABLE Scribble_${grp}${inst}.Error_${tbl}_2;\n";
+print EXEC "DROP TABLE Scribble_${grp}${inst}.TestTable_${tbl};\n";
 print EXEC "\n";
 
 
@@ -63,7 +72,7 @@ my $c    = 0;
 
 
 ### CREATE THE TESTING TABLES FOR TEST USER
-print EXEC "CREATE TABLE Scribble_${inst}.TestTable_${i}, Fallback\n";
+print EXEC "CREATE TABLE Scribble_${grp}${inst}.TestTable_${tbl}, Fallback\n";
 print EXEC "(\n";
 foreach my $cfg (@cfgs) {
     if ($cfg =~ /^#|^\s|^\n/) { $col_counts -= 1; next; };
@@ -99,7 +108,7 @@ foreach my $cfg (@cfgs) {
         if ($c < $col_counts) { print EXEC ",\n"; }
     }
     else {
-        print "Oh No!\n";
+        print "ERROR (blkexit_generator): Invalid Type!\n";
         exit -1;
     }
     $c += 1;
@@ -143,7 +152,7 @@ foreach my $cfg (@cfgs) {
         if ($c < $col_counts) { print EXEC ",\n"; }
     }
     else {
-        print "Oh No!\n";
+        print "ERROR (blkexit_generator): Invalid Type\n";
         exit -1;
     }
     $c += 1; 
@@ -156,12 +165,12 @@ print EXEC "SHOW;\n";
 
 
 ### LOAD
-print EXEC "BEGIN LOADING Scribble_${inst}.TestTable_${i}\n";
-print EXEC "ErrorFiles Scribble_${inst}.Error_${i}_1, Scribble_${inst}.Error_${i}_2;\n\n";
+print EXEC "BEGIN LOADING Scribble_${grp}${inst}.TestTable_${tbl}\n";
+print EXEC "ErrorFiles Scribble_${grp}${inst}.Error_${i}_1, Scribble_${grp}${inst}.Error_${tbl}_2;\n\n";
 
 
 ### INSERT
-print EXEC "INSERT INTO Scribble_${inst}.TestTable_${i}\n";
+print EXEC "INSERT INTO Scribble_${grp}${inst}.TestTable_${tbl}\n";
 print EXEC "(\n";
 foreach my $c (0 .. $counts-1) {
     print EXEC "\tcol${c}";

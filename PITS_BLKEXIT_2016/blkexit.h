@@ -11,9 +11,11 @@
 
 
 //------------ Type Definitions  ------------//
-typedef int          	Int32; 
+typedef short        	Sht16;
+typedef int          	Int16;
+typedef long int        Int32;
+typedef long long int   Int64;
 typedef unsigned int 	UInt32;
-typedef short        	Int16;
 typedef double       	Dub64;
 
 typedef struct inmod_struct {
