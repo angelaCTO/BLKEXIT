@@ -9,17 +9,21 @@ use strict;
 ## specify 'ALL', must also input the total number of existing instances     ## 
 ###############################################################################
 
-if($#ARGV < 3) {
-	print "USAGE: [SYSTEM] [USER] [PASSWORD] [INSTANCE] [#INSTANCES]\n";
+if($#ARGV != 5) {
+	print "USAGE: [CWD] [SYSTEM] [USER] [PASSWORD] [INSTANCE] [#INSTANCES]\n";
 	exit 1;
 }
-my $sys  = $ARGV[0];
-my $usr  = $ARGV[1];
-my $pwd  = $ARGV[2];
-my $inst = $ARGV[3];
-my $num  = $ARGV[4];
+my $cwd  = $ARGV[0]
+my $sys  = $ARGV[1];
+my $usr  = $ARGV[2];
+my $pwd  = $ARGV[3];
+my $inst = $ARGV[4];
+my $num  = $ARGV[5];
 
-my $clean_script = "../scripts/clean_script";
+
+my $clean_script = "$cwd/scripts/clean_script";
+my $clean_out    = "$cwd/outputs/clean_script.txt";
+
 open(CLEAN, '>', $clean_script) or die("Couldn't open $clean_script $!\n");
 print CLEAN "LOGON $sys/$usr,$pwd;\n";
 if ($inst =~ /ALL/i) {
@@ -35,5 +39,5 @@ else {
 print CLEAN "LOGOFF;\nQUIT;\n";
 close(CLEAN);
 
-system("/usr/bin/bteq < $clean_script > ../outputs/clean_script.txt");
+system("/usr/bin/bteq < $clean_script > $clean_out");
 #system("rm $clean_script");

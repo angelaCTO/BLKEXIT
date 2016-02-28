@@ -7,17 +7,18 @@
 use strict;
 use warnings;
 
-if($#ARGV != 2) {
-	print "USAGE: [SYSTEM] [USER] [PASSWORD]\n";
+if($#ARGV != 3) {
+	print "USAGE: [CWD] [SYSTEM] [USER] [PASSWORD]\n";
 	exit (1);
 }
-my $sys  = $ARGV[0];
-my $usr  = $ARGV[1];
-my $pwd  = $ARGV[2];
+my $cwd  = $ARGV[0];
+my $sys  = $ARGV[1];
+my $usr  = $ARGV[2];
+my $pwd  = $ARGV[3];
 
-my $export_report = "reports/space/${sys}_space.rpt";
-my $export_output = "outputs/space/${sys}_space.txt";
-my $get_space     = "scripts/space/${sys}_space.bteq";
+my $export_report = "$cwd/reports/space/${sys}_space.rpt";
+my $export_output = "$cwd/outputs/space/${sys}_space.txt";
+my $get_space     = "$cwd/scripts/space/${sys}_space.bteq";
 
 #if (-e $export_report){ qx(/bin/rm $export_report); }
 if (-e $get_space)     { qx(/bin/rm $get_space);     }

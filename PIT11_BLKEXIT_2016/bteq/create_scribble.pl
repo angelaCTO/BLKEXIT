@@ -12,16 +12,18 @@ use strict;
 #TODO "Couldn't open ../scripts/create/Scribble_0_create.bteq No such file or directory"
 #warning doesnt affect load ... need to debug later
 
-if($#ARGV != 4) {
-	print "USAGE: [SYSTEM] [USER] [PASSWORD] [INSTANCE] [PERM]\n";
+if($#ARGV != 5) {
+	print "USAGE: [CWD] [SYSTEM] [USER] [PASSWORD] [INSTANCE] [PERM]\n";
 	exit (1);
 }
-my $sys  = $ARGV[0];
-my $usr  = $ARGV[1];
-my $pwd  = $ARGV[2];
-my $inst = $ARGV[3];
-my $perm = $ARGV[4];
+my $cwd  = $ARGV[0];
+my $sys  = $ARGV[1];
+my $usr  = $ARGV[2];
+my $pwd  = $ARGV[3];
+my $inst = $ARGV[4];
+my $perm = $ARGV[5];
 
+my $create_script = "$cwd/scripts/create/Scribble_${inst}_create.bteq";
 
 my $create_user = <<"EOT";
 LOGON $sys/$usr,$pwd;
@@ -35,13 +37,12 @@ LOGOFF;
 QUIT;
 EOT
 
-my $create_script = "../scripts/create/Scribble_${inst}_create.bteq";
 if (-e $create_script) { qx(rm $create_script); }
 open(CREATE, '>', $create_script) or die("Couldn't open $create_script $!\n");
 print CREATE $create_user; 
 close(CREATE);
 
-#qx(/usr/bin/bteq < $create_script 2>/dev/null);
-qx(/usr/bin/bteq < $create_script);
+qx(/usr/bin/bteq < $create_script 2>/dev/null);
+#qx(/usr/bin/bteq < $create_script);
 
 exit(0);

@@ -8,22 +8,23 @@ use strict;
 use warnings;
 
 if($#ARGV != 5) {
-	print "USAGE: [SYSTEM] [USER] [PASSWORD] [INSTANCE] [TABLE] [ROWS]\n";
+	print "USAGE: [CWD] [SYSTEM] [USER] [PASSWORD] [INSTANCE] [TABLE] [ROWS]\n";
 	exit(1);
 }
-my $sys  = $ARGV[0];
-my $usr  = $ARGV[1];
-my $pwd  = $ARGV[2];
-my $i    = $ARGV[3];
-my $tbl  = $ARGV[4];
-my $rows = $ARGV[5];
+my $cwd  = $ARGV[0];
+my $sys  = $ARGV[1];
+my $usr  = $ARGV[2];
+my $pwd  = $ARGV[3];
+my $i    = $ARGV[4];
+my $tbl  = $ARGV[5];
+my $rows = $ARGV[6];
 
 my $drop     = undef;
 my $drop_out = undef;
 
 if ($rows =~ /ALL/i) {
-    $drop     = "scripts/drop/drop_tbl${i}-${tbl}-ALL.bteq";
-    $drop_out = "outputs/drop/drop_tbl${i}-${tbl}-ALL.out";
+    $drop     = "$cwd/scripts/drop/drop_tbl${i}-${tbl}-ALL.bteq";
+    $drop_out = "$cwd/outputs/drop/drop_tbl${i}-${tbl}-ALL.out";
 
     open (DROP, '>', $drop) or die("Could not open $drop!");
     print DROP ".LOGON $sys/$usr,$pwd;\n";

@@ -26,7 +26,6 @@ my $inst = $ARGV[5];
 my $exec = $ARGV[6];
 
 
-
 my $cfg_input = "cfgs/input_all.cfg";
 my $exec_fld  = "scripts/fastload/Scribble_${inst}-TestTable_${i}";
 my $exec_out  = "outputs/fastload/load_${i}.txt";

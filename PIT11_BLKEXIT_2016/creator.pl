@@ -15,7 +15,6 @@ use threads;
 
 ## FLAG/IMPORTS ============================================================ ##
 
-
 ###############################################################################
 ####                                                                       ####
 ####                      GLOBALS + FLAG + OPT DECLARATIONS                ####
@@ -28,6 +27,7 @@ my $debug = 1; #TODO implement this into a flag opt '-d'
 ## ==================================================================== TODO ##
 
 ## GLOBALS (CFG) =========================================================== ##
+my $cwd     = undef;
 my $sys  	= undef; 	
 my $usr  	= undef;
 my $pwd  	= undef;
@@ -45,65 +45,13 @@ my $sess = 1;
 
 ## ================================================================= GLOBALS ##
 
+
+
 ####=======================================================================####
 ####                                                                       ####
 ####                      BEGIN METHOD DEFINITONS                          ####
 ####                                                                       ####
 ####=======================================================================####
-
-##===========================================================================##
-## parse_dbc_space() : (Helper)                                              ##
-##                                                                           ##
-## Description: Parses system disksum statistics retrieved from DBC by       ## 
-##              delegate BTEQ generating script                              ##
-## Params: None                                                              ##
-## Return: List : system current perm, max perm and total space useage (%)   ##
-##===========================================================================##
-sub parse_dbc_space {
-    qx(perl bteq/get_dbc_space.pl $sys $usr $pwd);
-
-    my $export_report = "reports/space/${sys}_space.rpt";
-    open (SPACE, '<', $export_report) or die("Could not open $export_report $!");
-    my @lines = <SPACE>;
-    close(SPACE);
-
-    my @stats = split(/\s+/, $lines[$#lines]);
-	my $cperm = $stats[1]; chomp($cperm); #print "CPERM: $cperm\n";
-	my $mperm = $stats[2]; chomp($mperm); #print "MPERM: $mperm\n";
-	my $usedp = $stats[3]; chomp($usedp); #print "USEDP: $usedp\n";
-
-	return ($cperm, $mperm, $usedp);
-}
-
-
-##===========================================================================##
-## parse_table_size(instance, table) : (Helper)                              ##
-##                                                                           ##
-## Description: Parses table size using data retrieved from a delegate BTEQ  ##
-##              generating script                                            ##
-## Params: Int : Instance Number (its No. ID)                                ##
-##         Int : Table Number (its No. ID)                                   ##
-## Return: None                                                              ##
-##===========================================================================##
-sub parse_table_size {
-	my $inst = shift(@_);
-	my $tbl  = shift(@_);
-	
-	my $tbl_rpt = "reports/space/Scribble${inst}_Tbl${tbl}.rpt";
-	if (-e $tbl_rpt) { qx(rm $tbl_rpt); }
-	qx(perl bteq/get_table_size.pl $sys $usr $pwd 0 0);
-	
-	open(TBL, '<', $tbl_rpt) or die ("Couldn't open $tbl_rpt $!\n");
-	my @lines = <TBL>;
-	close(TBL);
-	
-	my @stats = split(/\s\s+/, $lines[$#lines]);
-    #foreach my $i (0 .. $#stats) { $stats[$i] =~ s/\s+//g; }
-	
-	my $tbl_size = $stats[2]; chomp($tbl_size);
-    return $tbl_size;
-}
-
 
 ##===========================================================================##
 ## clean_up()                                                                ##
@@ -123,54 +71,24 @@ sub clean_up {
     if ($verb) { print "*** PREPPING DIRECTORIES [DONE]\n"; }
 }
 
-##===========================================================================##
-## parse_cfg("path/to/file")                                                 ##
-##                                                                           ##
-## Description: Parses user configuration file required for customizing run, ##
-##              reading in cfgs as file variables                            ##
-## Params: String : path to CFG file (located in dir: cfgs/)                 ##
-## Return: none                                                              ##
-##===========================================================================##
-sub parse_cfg {
-    my $cfg_master = shift(@_);
-    open(CFG, '<', $cfg_master) or die("Couldn't open $cfg_master $!\n");
-    my @cfgs = <CFG>;
-    close(CFG);
-
-    foreach my $cfg (@cfgs) {
-         next if $cfg =~ /^#|^$/;
-         my ($spec, $val) = split(/\s+/, $cfg); 
-
-         if    ($spec =~ /SYSTEM/i   ) { $sys  	= $val; }
-         elsif ($spec =~ /USERNAME/i ) { $usr  	= $val; }
-         elsif ($spec =~ /PASSWORD/i ) { $pwd  	= $val; }
-         elsif ($spec =~ /PERM/i     ) { $perm 	= $val; }		 
-         elsif ($spec =~ /INSTANCES/i) { $inst 	= $val; }         
-         elsif ($spec =~ /TABLES/i   ) { $tbls 	= $val; }
-         elsif ($spec =~ /ROWS/i     ) { $rows 	= $val; }
-         elsif ($spec =~ /FOPT/i     ) { $fopt  = $val; }
-         elsif ($spec =~ /FILL/i     ) { $fill  = $val; }
-         elsif ($spec =~ /ERROR/i    ) { $err   = $val; }
-         elsif ($spec =~ /TEST/i     ) { $test  = $val; }
-         else                          {              ; }
-    }
-}
-
 
 ##===========================================================================##
 ## clear_dbs()
 ##
 ##===========================================================================##
+#TODO Modify so that script will just look for and delete all scribble insts
+# ie no old instances from prior runs should exist
 sub clear_dbs {
 	if ($verb) { print "\n*** CLEARING DBS ON $sys\n"; }
 	
-	my @clear_jobs = ();
+	# my @clear_jobs = ();
 	foreach my $i (0 .. $inst-1) {
 		print "\tDELETING Scribble($i)\n"; 
-		push @clear_jobs, async { 
-			qx(perl bteq/clear_scribble.pl $sys $usr $pwd $i);
-		};
-	} $_->join for @clear_jobs;
+		#push @clear_jobs, async { 
+			qx(perl bteq/clear_scribble.pl $cwd $sys $usr $pwd $i);
+		#};
+	} 
+	# $_->join for @clear_jobs;
 
 =pod TODO: this implemetation occasionally leads to a resource deadlock, need to  resolve
 	## Implement check to ensure all old instances have been properly cleared
@@ -213,11 +131,97 @@ sub clear_dbs {
 	print "\tCHECK COMPLETED.\n";
 =cut
 	
-	if ($verb) { print "\n*** CLEARING DBS ON $sys [DONE]\n"; }
+	if ($verb) { print "*** CLEARING DBS ON $sys [DONE]\n"; }
 }
 
 
+##===========================================================================##
+## parse_cfg("path/to/file")                                                 ##
+##                                                                           ##
+## Description: Parses user configuration file required for customizing run, ##
+##              reading in cfgs as file variables                            ##
+## Params: String : path to CFG file (located in dir: cfgs/)                 ##
+## Return: none                                                              ##
+##===========================================================================##
+sub parse_cfg {
+    my $cfg_master = shift(@_);
+    open(CFG, '<', $cfg_master) or die("Couldn't open $cfg_master $!\n");
+    my @cfgs = <CFG>;
+    close(CFG);
 
+    foreach my $cfg (@cfgs) {
+         next if $cfg =~ /^#|^$/;
+         my ($spec, $val) = split(/\s+/, $cfg); 
+
+		 if    ($spec =~ /CWD/i      ) { $cwd  	= $val; }
+         elsif ($spec =~ /SYSTEM/i   ) { $sys  	= $val; }
+         elsif ($spec =~ /USERNAME/i ) { $usr  	= $val; }
+         elsif ($spec =~ /PASSWORD/i ) { $pwd  	= $val; }
+         elsif ($spec =~ /PERM/i     ) { $perm 	= $val; }		 
+         elsif ($spec =~ /INSTANCES/i) { $inst 	= $val; }         
+         elsif ($spec =~ /TABLES/i   ) { $tbls 	= $val; }
+         elsif ($spec =~ /ROWS/i     ) { $rows 	= $val; }
+         elsif ($spec =~ /FOPT/i     ) { $fopt  = $val; }
+         elsif ($spec =~ /FILL/i     ) { $fill  = $val; }
+         elsif ($spec =~ /ERROR/i    ) { $err   = $val; }
+         elsif ($spec =~ /TEST/i     ) { $test  = $val; }
+         else                          {              ; }
+    }
+}
+
+
+##===========================================================================##
+## parse_dbc_space() : (Helper)                                              ##
+##                                                                           ##
+## Description: Parses system disksum statistics retrieved from DBC by       ## 
+##              delegate BTEQ generating script                              ##
+## Params: None                                                              ##
+## Return: List : system current perm, max perm and total space useage (%)   ##
+##===========================================================================##
+sub parse_dbc_space {
+    qx(perl bteq/get_dbc_space.pl $cwd $sys $usr $pwd);
+
+    my $export_report = "reports/space/${sys}_space.rpt";
+    open (SPACE, '<', $export_report) or die("Could not open $export_report $!");
+    my @lines = <SPACE>;
+    close(SPACE);
+
+    my @stats = split(/\s+/, $lines[$#lines]);
+	my $cperm = $stats[1]; chomp($cperm); #print "CPERM: $cperm\n";
+	my $mperm = $stats[2]; chomp($mperm); #print "MPERM: $mperm\n";
+	my $usedp = $stats[3]; chomp($usedp); #print "USEDP: $usedp\n";
+
+	return ($cperm, $mperm, $usedp);
+}
+
+##===========================================================================##
+## parse_table_size(instance, table) : (Helper)                              ##
+##                                                                           ##
+## Description: Parses table size using data retrieved from a delegate BTEQ  ##
+##              generating script                                            ##
+## Params: Int : Instance Number (its No. ID)                                ##
+##         Int : Table Number (its No. ID)                                   ##
+## Return: None                                                              ##
+##===========================================================================##
+sub parse_table_size {
+	my $inst = shift(@_);
+	my $tbl  = shift(@_);
+	
+	my $tbl_rpt = "reports/space/Scribble${inst}_Tbl${tbl}.rpt";
+	if (-e $tbl_rpt) { qx(rm $tbl_rpt); }
+
+	qx(perl bteq/get_table_size.pl $cwd $sys $usr $pwd 0 0);
+	
+	open(TBL, '<', $tbl_rpt) or die ("Couldn't open $tbl_rpt $!\n");
+	my @lines = <TBL>;
+	close(TBL);
+	
+	my @stats = split(/\s\s+/, $lines[$#lines]);
+    #foreach my $i (0 .. $#stats) { $stats[$i] =~ s/\s+//g; }
+	
+	my $tbl_size = $stats[2]; chomp($tbl_size);
+    return $tbl_size;
+}
 
 
 ##===========================================================================##
@@ -236,7 +240,7 @@ sub standard_fill {
 	my @jobs = ();
 	for my $i (0 .. $inst-1) {
 		push @jobs, async { 
-			qx(perl bteq/create_scribble.pl $sys $usr $pwd $i $perm);
+			qx(perl bteq/create_scribble.pl $cwd $sys $usr $pwd $i $perm);
 		};
 	} $_->join for @jobs;
 
@@ -246,7 +250,7 @@ sub standard_fill {
 		push @jobs, async {
 			foreach my $tbl (0 .. $tbls-1) {
 				if ($verb) { print "\tCREATING TABLE $tbl FOR INSTANCE $i\n"; }
-				qx(perl blkexit_generator.pl $sys $usr $pwd $sess $tbl $i $exec);
+				qx(perl blkexit_generator.pl $cwd $sys $usr $pwd $sess $tbl $i $exec);
 			}
 		}; 
 	} $_->join for @jobs;
@@ -271,7 +275,7 @@ sub target_fill {
 	my $exec = shift(@_);
 
 	## Check that system has sufficient space for achieving fill
-    print "ENSURING SUFFICIENT SPACE FOR TEST ";
+    print "\tENSURING SUFFICIENT SPACE FOR TEST ";
 	my $dbc_used = parse_dbc_space();
 	if ($dbc_used > $fill) {
 		print "[FAIL]\n";
@@ -284,10 +288,9 @@ sub target_fill {
 
 
 	if ($verb) { 
-		print "\nCOMPUTING SPACE STATISTICS AND TARGET DISTRIBUTION\n";
-		print "\n(SEE HTBL_SUMMARY REPORT FOR DETAILS)\n";
+		print "\tCOMPUTING SPACE STATISTICS AND TARGET DISTRIBUTION\n";
+		print "\tNOTE: SEE HTBL_SUMMARY REPORT FOR DETAILS\n";
 	}
-
 
 	## Gather DBC diskspace statistics after generating one htbl 
 	my @dbc_stats		= parse_dbc_space();	
@@ -303,7 +306,7 @@ sub target_fill {
 
 	## Determine the approximate space useage (%) for tbl/dbc
 	## by generating 1 htbl with x rows to gauge character of fill
-	qx(perl bteq/create_scribble.pl $sys $usr $pwd 0 $perm);
+	qx(perl bteq/create_scribble.pl $cwd $sys $usr $pwd 0 $perm);
 	qx(perl blkexit_generator.pl $sys $usr $pwd $sess 0 0 $exec);
 
 	## Determine bounds on acceptable target margin given err
@@ -317,7 +320,7 @@ sub target_fill {
 	my $num_htbls      	= int((($mperm*(0.01*$fill))/$htbl_size) + 1);
 	my $htbls_per_inst 	= int($perm/$htbl_size) - 1;           # -1 to pad
 	my $num_insts      	= int($num_htbls/$htbls_per_inst) + 1; # +1 overflow
-	my $htbl_drops       = ($num_insts*$htbls_per_inst) - $num_htbls;
+	my $htbl_drops      = ($num_insts*$htbls_per_inst) - $num_htbls;
 
 	## Htbl Computation Summary
 	my $htbl_summary = "reports/htbl_summary.rpt";
@@ -332,15 +335,17 @@ sub target_fill {
 	print HTBL "TOTAL HTABLE DROPS (FROM LAST)      $htbl_drops\n";
 	close(HTBL);
 
+    print "\tBEGIN GENERATING INSTANCES\n";
     my @jobs = ();
     if ($num_insts > 1) {
 		for my $i (1 .. $num_insts-1) {
 			push @jobs, async {
-				qx(perl bteq/create_scribble.pl $sys $usr $pwd $i $perm);
+				qx(perl bteq/create_scribble.pl $cwd $sys $usr $pwd $i $perm);
 			}
 		} $_->join for @jobs;
 	}
 
+	print "\tBEGIN LOADING TABLES\n";
 	my @jobs_insts = ();
 	foreach my $i (0 .. $num_insts-1) {
 		push @jobs_insts, async {
@@ -353,7 +358,8 @@ sub target_fill {
 			} $_->join for @jobs_htbls;
 		}; 
     } $_->join for @jobs_insts;
-
+	print "\tLOADING COMPLETE\n";
+	
 	
 	## Determine if we've hit the target
 	my @post_stats = parse_dbc_space();
@@ -363,7 +369,6 @@ sub target_fill {
 	## Drop the overflows
 	my $drop_script	= "scripts/drop/drop_overflow.bteq";
 	open (DROP, '>', $drop_script) or die("Could not open $drop_script!");
-
 	print DROP ".LOGON $sys/$usr,$pwd;\n";
 	foreach my $htbl (0 .. $htbl_drops-1) {
 		print DROP "DROP Scribble_${inst}.TestTable_$htbl;\n"
@@ -371,7 +376,7 @@ sub target_fill {
 	close(DROP);
 
 	my $drop_out = "outputs/drop/drop_overflow.out";
-	qx(/usr/bin/bteq < $drop_script  $drop_out);
+	qx(/usr/bin/bteq < $drop_script > $drop_out);
 }
 
 
@@ -387,10 +392,9 @@ sub target_fill {
 ## Return: None                                                              ##
 ##===========================================================================##
 sub populate {
-	if ($verb) { print "\n*** LOADING ON $sys\n"; }
 	my $exec = shift(@_);
 
-	if ($verb) { print "\n***LOAD ($exec) "; }   	
+	if ($verb) { print "\n*** LOAD ($exec) "; }   	
 
     if ($fopt =~ /STANDARD/i) { 
     	if ($verb) { print "[STANDARD]\n"; }
@@ -401,7 +405,7 @@ sub populate {
     	target_fill($exec);   
     }
 
-    if ($verb) { print "\n*** LOADING ON $sys [DONE]\n"; }
+    if ($verb) { print "*** LOADING ON $sys [DONE]\n"; }
 }
 
 
@@ -425,7 +429,7 @@ sub main {
 
 	clean_up();
     parse_cfg($master);
-	#clear_dbs();
+	clear_dbs();
 	populate($exec);
 	
     my $t1 = localtime();
@@ -435,3 +439,4 @@ sub main {
 
 	exit 0;
 } main();
+
