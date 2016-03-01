@@ -13,7 +13,7 @@
 
 
 // ------------------------- LOCAL INITIALIZATION -------------------------- //
-Int32 reccnt  = 0;
+Int64 reccnt  = 0;
 inmdptr inmodptr;   
 
 // ------------------------- METHOD INITIALIZATION -------------------------- //
@@ -91,7 +91,7 @@ Int32 MakeRecord(int cols, long long int rows) {
     for (i = 0; i < cols; i++) {
         memset(str_data, '\0', BUFSIZ);
 	if (strcmp(types[i], "COUNTER") == 0) {
-	    memcpy(p, &reccnt, (Int32)sizeof(reccnt));
+	    memcpy(p, &reccnt, (Int64)sizeof(reccnt));
             p += sizeof(reccnt);
 	}
         else if (strcmp(types[i], "INTEGER") == 0) {
