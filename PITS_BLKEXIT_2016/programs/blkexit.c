@@ -32,12 +32,12 @@ void SigHandler(int dummy) {
  * Initializations, if any
  */
 struct tuple Init() { 
-    // Import dictionary for data generation
     init_dict(import_dict, export_dict, dict_buff);
 
     // Invoke parser to read in numrows spec from cfg file: master.cfg
-    Int32 rows = read_rows(master_path);
-	
+    Int64 rows = read_rows(master_path);
+    printf("-->ROWS: %llu\n", rows);
+
     struct tuple rt = {EM_OK, rows};
 
     return(rt); 
@@ -79,7 +79,7 @@ Int32 InvalidCode() {
 /* MAKERECORD : Exit Status
  * Generates records according to inputs defined in CFG 
  */
-Int32 MakeRecord(int cols, int rows) {
+Int32 MakeRecord(int cols, long long int rows) {
     char *p;
     if (reccnt >= rows) { return(FILEOF); }
     p = inmodptr->Body;

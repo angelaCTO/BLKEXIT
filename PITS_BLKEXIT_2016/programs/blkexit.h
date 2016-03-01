@@ -11,11 +11,10 @@
 
 
 //------------ Type Definitions  ------------//
-typedef short        	Sht16;
-typedef int          	Int16;
-typedef long int        Int32;
+typedef int          	Int32; 
 typedef long long int   Int64;
 typedef unsigned int 	UInt32;
+typedef short        	Int16;
 typedef double       	Dub64;
 
 typedef struct inmod_struct {
@@ -26,14 +25,14 @@ typedef struct inmod_struct {
 
 struct tuple {
     Int32 result;
-    Int32 rows;
+    Int64 rows;
 };
 
 //------------ File Paths ------------//
 char *import_dict = "dictionary/wordsEn.dict";
 char *export_dict = "dictionary/wordsEx.dict";
 char *inputs_path = "cfgs/input_all.cfg";
-char *master_path = "cfgs/master.cfg";
+char *master_path = "cfgs/master_41.cfg";
 
 
 
@@ -50,6 +49,6 @@ Int32 HostRestart();
 Int32 CheckPoint();
 Int32 DBSRestart();
 Int32 InvalidCode();
-Int32 MakeRecord(int cols, int numrows);
+Int32 MakeRecord(int cols, long long int numrows);
 Int32 BLKEXIT(char *tblptr);
 Int32 CleanUp();

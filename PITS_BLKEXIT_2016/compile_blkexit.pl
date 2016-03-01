@@ -10,9 +10,13 @@ use strict;
 use warnings;
 
 ## Compile SCRIBMOD
-qx(gcc -lm -lrt -fPIC -m32 -shared -Bstatic blkexit.c generator.c parser.c dictionary.c -o BLKEXIT);
+my $programs = "programs/blkexit.c programs/generator.c programs/parser.c programs/dictionary.c";
+#qx(gcc -lm -lrt -fPIC -m32 -shared -Bstatic programs/blkexit.c programs/generator.c programs/parser.c programs/dictionary.c -o bin/BLKEXIT);
+
+qx(gcc -lm -lrt -fPIC -m32 -shared -Bstatic $programs -o bin/BLKEXIT);
+
 
 ## OpenSSH to bypass password prompt
-qx(sshpass -p "Guest2345" scp BLKEXIT root\@pit11:/var/opt/teradata/PIT11_BLKEXIT_2016);
+qx(sshpass -p "Guest2345" scp bin/BLKEXIT root\@pit11:/var/opt/teradata/PIT11_BLKEXIT_2016/bin);
 
 exit(0);
