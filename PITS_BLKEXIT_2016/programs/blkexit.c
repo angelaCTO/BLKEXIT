@@ -13,11 +13,11 @@
 
 
 // ------------------------- LOCAL INITIALIZATION -------------------------- //
-Int64 reccnt  = 0;
+struct  tuple init_t;
 inmdptr inmodptr;   
+Int32   reccnt= 0;
 
 // ------------------------- METHOD INITIALIZATION -------------------------- //
-
 
 /* SIGHANDLER : void
  * Set EOF if signal received
@@ -35,8 +35,8 @@ struct tuple Init() {
     init_dict(import_dict, export_dict, dict_buff);
 
     // Invoke parser to read in numrows spec from cfg file: master.cfg
-    Int64 rows = read_rows(master_path);
-    printf("-->ROWS: %llu\n", rows);
+    Int32 rows = read_rows(master_path);
+    printf("(INIT)-->ROWS: %lu\n", rows);
 
     struct tuple rt = {EM_OK, rows};
 
@@ -79,8 +79,9 @@ Int32 InvalidCode() {
 /* MAKERECORD : Exit Status
  * Generates records according to inputs defined in CFG 
  */
-Int32 MakeRecord(int cols, long long int rows) {
+Int32 MakeRecord(Int32 cols, Int32 rows) {
     char *p;
+	printf("RECCNT: %lu // ROWS: %lu\n", reccnt, rows);
     if (reccnt >= rows) { return(FILEOF); }
     p = inmodptr->Body;
  
@@ -90,15 +91,15 @@ Int32 MakeRecord(int cols, long long int rows) {
     int i;
     for (i = 0; i < cols; i++) {
         memset(str_data, '\0', BUFSIZ);
-	if (strcmp(types[i], "COUNTER") == 0) {
-	    memcpy(p, &reccnt, (Int64)sizeof(reccnt));
-            p += sizeof(reccnt);
-	}
+		if (strcmp(types[i], "COUNTER") == 0) {
+	    	memcpy(p, &reccnt, (Int32)sizeof(reccnt));
+        	p += sizeof(reccnt);
+		}
         else if (strcmp(types[i], "INTEGER") == 0) {
             Int32 intr = rand_int(randr(0,1));
-	    memcpy(p, &intr, (Int32)sizeof(intr));
+	    	memcpy(p, &intr, (Int32)sizeof(intr));
             p += sizeof(intr);
-	}
+		}
         else if (strcmp(types[i], "DECIMAL") == 0) {
             randl_deci(str_data, limits[i], precisions[i]);
             memcpy(p, str_data, strlen(str_data));
@@ -127,7 +128,10 @@ Int32 MakeRecord(int cols, long long int rows) {
             memcpy(p, str_data, strlen(str_data));
             p += strlen(str_data);
         }
-        else { printf("ERROR(blkexit.c): Processing CFG, Invalid Type\n"); }
+        else { 
+			printf("ERROR(blkexit.c): Processing Found Invalid Type. Aborting.\n"); 
+		}
+       
     }
 
     inmodptr->ReturnCode = 0;
@@ -162,10 +166,11 @@ char *tblptr;
     inmodptr = (struct inmod_struct *)tblptr;
 
     Int32 result;
-    struct tuple init_t;
+
 
     // Invoke parser to parse user cfg file: input_all.cfg
-    Int32 cols = 0; cols = read_specs(inputs_path, cols, types, limits, precisions); 
+    Int32 cols = 0;
+    cols = read_specs(inputs_path, cols, types, limits, precisions); 
 
     // Process the function passed to the INMOD
     switch (inmodptr->ReturnCode) {
@@ -187,10 +192,10 @@ char *tblptr;
                  break;
     }
      
- 
- 
-    if (result == FILEOF | stop == 1) {
-        printf("INMOD: FILE = EOF\n");
+    /* TODO */
+//    if (result == FILEOF || stop == 1) {
+      if (result == FILEOF) {
+        printf("INMOD: FILE = EOF! Done\n");
         inmodptr->Length = 0;
         result = EM_OK;
     }
