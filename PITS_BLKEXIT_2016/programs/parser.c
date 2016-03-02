@@ -104,14 +104,14 @@ int read_specs(char *cfg_path, int col, char *types[BUFFLEN], int limits[BUFFLEN
 	}
   
 	fclose(fp);
-        return(col);
+    return(col);
 }
 
 
 /* READ_ROWS : int (numrows)
  * Reads in NUMROWS spec from external configurations file for BLKEXIT routine 
  */
-long long int read_rows(char *cfg_path) {
+int read_rows(char *cfg_path) {
 	FILE *fp;
 	if ((fp = fopen(cfg_path, "r")) == NULL) {
 		printf("FILE: %s: %s\n", "ERROR(parser.c): Reading File", cfg_path);
@@ -125,7 +125,10 @@ long long int read_rows(char *cfg_path) {
         if (line[i] != '\n' && line[i] != '#') {
 		    char *spec = strtok(line, " ");
 		    if (strcmp(spec, "ROWS") == 0) { 
-                return(atoi(strtok(NULL, " ")));
+                long int rows = atoi(strtok(NULL, " "));
+				printf("(READ FROM CFG)-->Rows %lu\n", rows);
+				return rows;
+			
     		}
         }
         i++; 	
